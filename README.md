@@ -158,8 +158,8 @@ sender.data_signal.unsubscribe(my_callback)
 
 ### Using in Threads / Thread Safety
 
-Threading Safety Explanation (to replace "! Explain more here !")
 The library is thread-safe. You can safely publish and subscribe from multiple threads. However, be cautious with the data you pass to subscribers, as they will run in the thread that calls publish.
+
 Key considerations:
 
 - Subscribers execute synchronously in the publishing thread
@@ -353,7 +353,7 @@ user_events.publish(UserRegistered(
 # 5. Easy to evolve - add new fields with defaults without breaking existing code
 ```
 
-Pro tip: Use dataclasses with `frozen=True` for immutable events that are safe to pass between threads (See [Memory Management](#memory-management) section).
+Pro tip: Use dataclasses with `frozen=True` for immutable events that are safe to pass between threads (See [Using in Threads / Thread Safety](#using-in-threads--thread-safety))
 
 ### Overriding Logging and Error Handling
 
