@@ -8,7 +8,9 @@
 
 A tiny, modern alternative to [Blinker](https://github.com/pallets-eco/blinker) – typed, thread-safe, and built for today’s Python.
 
-ezpubsub is an ultra-simple pub/sub library for Python. Its only goal is to make publishing and subscribing to events as easy and as safe as possible. No async complexity, no extra features, no dependencies. Just clean, synchronous pub/sub that works anywhere
+EZpubsub is an ultra-simple pub/sub library for Python. Its only goal is to make publishing and subscribing to events easy and safe. No async complexity, no extra features, no dependencies. Just clean, synchronous pub/sub that works anywhere.
+
+The core design is inspired by the internal pub/sub system used in Textual, [Will McGugan](https://willmcgugan.github.io/)’s TUI framework. Will is one of the world’s foremost Python experts, and his internal implementation is the cleanest I’ve ever seen. EZpubsub takes those same lessons and distills them into a standalone, cross-framework library you can drop into any project.
 
 ## Features
 
@@ -45,16 +47,29 @@ However, ezpubsub was designed as a modern alternative:
 3. **Type Safety Over Dynamic Namespaces**  
     Blinker’s string-based namespaces allow arbitrary signal creation (`ns.signal("user_created")`), but at the cost of type safety—there’s nothing stopping you from accidentally publishing the wrong object type. ezpubsub treats each signal as an explicitly typed object (`Signal[User]`), making such mistakes enforced at compile time instead of runtime.
 
-### Why not use an "async-native" pub/sub library?
+### Why Not Just Use One of the Other Libraries?
+
+There are dozens of pub/sub libraries on PyPI, but almost all of them fall into two camps: ancient untyped code that hasn’t been maintained in years, or modern ‘async-first’ libraries that are overengineered and awkward to use for simple event dispatch. Here’s why ezpubsub exists instead of just recommending one of these.
+
+| Library                     | Why Not?                                                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Blinker**                 | Great for simple Flask-style apps, but assumes single-threaded execution and no static typing.       |
+| **PyDispatcher**            | Unmaintained, completely untyped, API hasn’t been touched in years.                                  |
+| **aiopubsub**               | Overengineered, async-first, and requires a full asyncio setup even for simple use cases.            |
+| **aiosubpub**               | Forces subscriptions to be asyncio tasks, making ergonomics painful for mixed sync/async projects.   |
+| **[Some other small libs]** | Typically 50–100 lines, but missing critical things like weakrefs, thread safety, error isolation, and documentation |
+|                             |                                                                                                      |
+
+### Why not use "async-first" pub/sub libraries?
 
 There are dozens of tiny “AIO pub/sub” libraries on GitHub. I was personally not satisfied with any of them for these reasons:
 
 1. **Async should not be the core mechanism**  
-    Pub/sub is just a dispatch mechanism. Whether you call a subscriber directly or schedule it on an event loop is application logic. Some people might say this is a hot take, but I believe in it. It's not terrible to include async support as an option, but it should not be the primary focus of a pub/sub library.
+    Pub/sub is just a dispatch mechanism. Whether you call a subscriber directly or schedule it on an event loop is application logic. Some people might say this is a hot take, but I believe in it. It's not terrible to include async support as an option, but it should not be the primary focus of a pub/sub library. The sender of a signal can simply await the external data it needs and then send the signal when ready. There's no particular advantage to awaiting the callback itself, and it just adds unnecessary complexity to the API.
 2. **Async-First Usually Means Bad Ergonomics**  
-    These libraries often force you into awkward patterns: creating tasks for every subscription, manual event loop juggling, weird API naming. No benefit, more pain.
+    These libraries often force you into awkward patterns: creating tasks for every subscription, manual event loop juggling, weird API naming. There's no practical benefit to taking up more of your mental real estate.
 
-There is a reason that the most popular pub/sub libraries in the Python ecosystem (blinker, Celery, PyDispatcher, etc) are all synchronous. It’s the simplest, most predictable way to do pub/sub. Async-first versions, in my humble opinion, are [reinventing the square wheel](https://exceptionnotfound.net/reinventing-the-square-wheel-the-daily-software-anti-pattern/).
+There is a reason that the most popular pub/sub libraries in the Python ecosystem (blinker, Celery, PyDispatcher, etc) are all synchronous at their core. It’s the simplest, most predictable way to do pub/sub. Async-first versions, in my humble opinion, are [reinventing the square wheel](https://exceptionnotfound.net/reinventing-the-square-wheel-the-daily-software-anti-pattern/).
 
 I would certainly be open to implementing some very simple async support in future versions (As of writing this it's only 0.1.0!), but it would be an optional feature, and need to follow the same principles of simplicity and ergonomics as the rest of the library.
 
