@@ -12,8 +12,10 @@ logger.addHandler(logging.StreamHandler())
 
 SignalT = TypeVar("SignalT")
 
+
 class SignalError(Exception):
     """Raised for Signal errors."""
+
 
 class Signal(Generic[SignalT]):
     """A simple synchronous pub/sub signal."""
@@ -46,21 +48,21 @@ class Signal(Generic[SignalT]):
     @property
     def error_raising(self) -> bool:
         """Check if error raising is enabled."""
-        
+
         return self._error_raising
 
     def toggle_logging(self, enabled: bool = True) -> None:
         """Toggle logging for this signal.
-        
+
         Note that you can also override the `log` method to customize logging behavior, which would
         also override this flag unless you chose to incorporate it."""
-        
+
         with self._lock:
-            self._logging_enabled = enabled        
+            self._logging_enabled = enabled
 
     def toggle_error_raising(self, enabled: bool = True) -> None:
         """Toggle whether to raise exceptions in subscriber callbacks which are passed to `on_error`.
-        
+
         Note that you can also override the `on_error` method to customize error handling, which would
         also override this flag unless you chose to incorporate it."""
 
@@ -95,7 +97,7 @@ class Signal(Generic[SignalT]):
 
     def unsubscribe(self, subscriber: Any) -> bool:
         """Unsubscribe a subscriber from the signal.
-        
+
         Args:
             subscriber: The subscriber to remove, which can be a class instance or a function.
         Returns:
@@ -117,7 +119,7 @@ class Signal(Generic[SignalT]):
         """Publish data to all subscribers. If any subscriber raises an exception,
         it will be caught and passed to the `on_error` method (which just logs by default,
         but can be overridden for custom error handling).
-        
+
         Args:
             data: The data to send to subscribers.
         Raises:
@@ -146,20 +148,20 @@ class Signal(Generic[SignalT]):
 
     def on_error(self, subscriber: Any, callback: Callable[[SignalT], None], error: Exception) -> None:
         """Override this to handle errors differently. This will also override the `error_raising` flag.
-        
+
         Args:
             subscriber: The subscriber that raised the error.
             callback: The callback that raised the error.
             error: The exception that was raised.
         """
-        
+
         self.log(f"Error in callback for {subscriber}: {error}")
         if self._error_raising:
             raise SignalError(f"Error in callback {callback} for subscriber {subscriber}: {error}") from error
 
     def log(self, message: str) -> None:
         """Override this to customize logging behavior. This will also override the `logging_enabled` flag.
-        
+
         Args:
             message: The message to log.
         """

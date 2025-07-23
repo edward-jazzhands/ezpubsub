@@ -1,7 +1,7 @@
 [project]
 name = "ezpubsub"
 version = "0.1.0"
-description = "An ultra simple and modern pub/sub library and blinker alternative for Python"
+description = "An ultra simple, modern pub/sub library and blinker alternative for Python"
 readme = "README.md"
 authors = [
     { name = "Edward Jazzhands", email = "ed.jazzhands@gmail.com" }
