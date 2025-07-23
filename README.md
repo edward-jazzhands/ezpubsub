@@ -13,7 +13,7 @@ ezpubsub is an ultra-simple pub/sub library for Python. Its only goal is to make
 ## Features
 
 - Thread-Safe by Default – Safe to publish and subscribe across threads.
-- Strongly Typed with Generics – Signals are fully generic (Signal[str], Signal[MyClass]), letting Pyright/MyPy catch mistakes before runtime. This also unlocks powerful combinations with Typed Objects as signal types.
+- Strongly Typed with Generics – Signals are fully generic (`Signal[str]`, `Signal[MyClass]`), letting Pyright/MyPy catch mistakes before runtime. This also unlocks powerful combinations with Typed Objects as signal types.
 - Synchronous by Design – 100% sync to keep things predictable. Works fine in async projects.
 - Automatic Memory Management – Bound methods are weakly referenced and automatically unsubscribed when their objects are deleted. Normal functions are strongly referenced and must be manually unsubscribed.
 - Lightweight & Zero Dependencies – Minimal API, no legacy baggage, designed for 2025-era Python.
@@ -39,11 +39,11 @@ Blinker is an excellent, battle-tested library. If you’re writing a simple, si
 However, ezpubsub was designed as a modern alternative:
 
 1. **Full Static Typing with Generics**  
-    Blinker’s signals are effectively untyped (Any everywhere). ezpubsub’s Signal[T] lets Pyright/MyPy enforce that subscribers receive the correct data type at development time, as well as unlocks powerful combinations with Typed Objects as signal types. This makes it much easier to catch mistakes before they happen, rather than at runtime.
+    Blinker’s signals are effectively untyped (Any everywhere). ezpubsub’s `Signal[T]` lets Pyright/MyPy enforce that subscribers receive the correct data type at development time, as well as unlocks powerful combinations with Typed Objects as signal types. This makes it much easier to catch mistakes before they happen, rather than at runtime.
 2. **Thread-Safe by Default**  
     Blinker assumes single-threaded execution. ezpubsub uses proper locking, making it safe in threaded or mixed sync/async environments.
 3. **Type Safety Over Dynamic Namespaces**  
-    Blinker’s string-based namespaces allow arbitrary signal creation (ns.signal("user_created")), but at the cost of type safety—there’s nothing stopping you from accidentally publishing the wrong object type. ezpubsub treats each signal as an explicitly typed object (Signal[User]), making such mistakes enforced at compile time instead of runtime.
+    Blinker’s string-based namespaces allow arbitrary signal creation (`ns.signal("user_created")`), but at the cost of type safety—there’s nothing stopping you from accidentally publishing the wrong object type. ezpubsub treats each signal as an explicitly typed object (`Signal[User]`), making such mistakes enforced at compile time instead of runtime.
 
 ### Why not use an "async-native" pub/sub library?
 
@@ -54,7 +54,7 @@ There are dozens of tiny “AIO pub/sub” libraries on GitHub. I was personally
 2. **Async-First Usually Means Bad Ergonomics**  
     These libraries often force you into awkward patterns: creating tasks for every subscription, manual event loop juggling, weird API naming. No benefit, more pain.
 
-There is a reason that the most popular pub/sub libraries in the Python ecosystem (blinker, Celery, PyDispatcher, etc) are all synchronous. It’s the simplest, most predictable way to do pub/sub. Async-first versions, in my opinion, are [reinventing the square wheel](https://exceptionnotfound.net/reinventing-the-square-wheel-the-daily-software-anti-pattern/).
+There is a reason that the most popular pub/sub libraries in the Python ecosystem (blinker, Celery, PyDispatcher, etc) are all synchronous. It’s the simplest, most predictable way to do pub/sub. Async-first versions, in my humble opinion, are [reinventing the square wheel](https://exceptionnotfound.net/reinventing-the-square-wheel-the-daily-software-anti-pattern/).
 
 I would certainly be open to implementing some very simple async support in future versions (As of writing this it's only 0.1.0!), but it would be an optional feature, and need to follow the same principles of simplicity and ergonomics as the rest of the library.
 
