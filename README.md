@@ -1,10 +1,11 @@
 # EZPubSub
 
-![badge](https://img.shields.io/badge/linted-Ruff-blue?style=for-the-badge&logo=ruff)
-![badge](https://img.shields.io/badge/formatted-black-black?style=for-the-badge)
-![badge](https://img.shields.io/badge/type_checked-MyPy_(strict)-blue?style=for-the-badge&logo=python)
-![badge](https://img.shields.io/badge/type_checked-Pyright_(strict)-blue?style=for-the-badge&logo=python)
-![badge](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
+[![badge](https://img.shields.io/badge/linted-Ruff-blue?style=for-the-badge&logo=ruff)](https://astral.sh/ruff)
+[![badge](https://img.shields.io/badge/formatted-black-black?style=for-the-badge)](https://github.com/psf/black)
+[![badge](https://img.shields.io/badge/type_checked-MyPy_(strict)-blue?style=for-the-badge&logo=python)](https://mypy-lang.org/)
+[![badge](https://img.shields.io/badge/Type_checked-Pyright_(strict)-blue?style=for-the-badge&logo=python)](https://microsoft.github.io/pyright/)
+[![badge](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](https://opensource.org/license/mit)
+[![badge](https://img.shields.io/badge/framework-Textual-blue?style=for-the-badge)](https://textual.textualize.io/)
 
 A tiny, modern alternative to [Blinker](https://github.com/pallets-eco/blinker) – typed, thread-safe, and built for today’s Python.
 
@@ -106,8 +107,6 @@ Or, with [UV](https://github.com/astral-sh/uv):
 uv add ezpubsub
 ```
 
----
-
 ## Quick Start
 
 Create a `Signal` instance, subscribe to it, and publish data:
@@ -128,8 +127,6 @@ data_signal.publish("Hello World")
 ## Documentation
 
 ### [Click here for full documentation](https://edward-jazzhands.github.io/libraries/ezpubsub/docs/)
-
----
 
 ## Questions, Issues, Suggestions?
 
