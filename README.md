@@ -159,11 +159,3 @@ Full docs: [**Click here**](https://edward-jazzhands.github.io/libraries/ezpubsu
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-### Why This Library Exists
-
-Because the Python ecosystem needed a **modern, type-safe, thread-safe pub/sub library that doesn’t suck.**
-
-EZPubSub is {167} deliberate lines of code that exist for one reason: to make event-driven Python sane again.
