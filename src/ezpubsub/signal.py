@@ -1,9 +1,10 @@
-"""signal.py - EZPubSub Signal Implementation"""
+"""signal.py - EZPubSub Signal Implementation with Async Support"""
 
 from __future__ import annotations
+import asyncio
 import logging
 import threading
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Awaitable, Callable, Generic, TypeVar, Union
 from weakref import WeakKeyDictionary
 
 logger = logging.getLogger("ezpubsub")
@@ -18,18 +19,24 @@ class SignalError(Exception):
 
 
 class Signal(Generic[SignalT]):
-    """A simple synchronous pub/sub signal."""
+    """A simple synchronous and asynchronous pub/sub signal."""
 
-    def __init__(self, name: str = "unnamed") -> None:
+    def __init__(self, name: str = "unnamed", require_freeze: bool = False) -> None:
         self._name = name
-        self._weak_subs: WeakKeyDictionary[Any, Callable[[SignalT], None]] = WeakKeyDictionary()
-        self._strong_subs: dict[Any, Callable[[SignalT], None]] = {}
+        self._weak_subs: WeakKeyDictionary[
+            Any, Union[Callable[[SignalT], None], Callable[[SignalT], Awaitable[Any]]]
+        ] = WeakKeyDictionary()
+        self._strong_subs: dict[
+            Any, Union[Callable[[SignalT], None], Callable[[SignalT], Awaitable[Any]]]
+        ] = {}
         self._lock = threading.RLock()
         self._logging_enabled = False
         self._error_raising = False
+        self._frozen = False
+        self._require_freeze = require_freeze
 
     def __repr__(self) -> str:
-        return f"Signal(name='{self._name}', subscribers={self.subscriber_count})"
+        return f"Signal(name='{self._name}', subscribers={self.subscriber_count}, frozen={self._frozen})"
 
     def __len__(self) -> int:
         """Return self.subscriber_count using len() for convenience."""
@@ -48,8 +55,23 @@ class Signal(Generic[SignalT]):
     @property
     def error_raising(self) -> bool:
         """Check if error raising is enabled."""
-
         return self._error_raising
+
+    @property
+    def frozen(self) -> bool:
+        """Check if the signal is frozen."""
+        return self._frozen
+
+    @property
+    def require_freeze(self) -> bool:
+        """Check if freeze is required before publishing."""
+        return self._require_freeze
+
+    def freeze(self) -> None:
+        """Freeze the signal to prevent new subscriptions."""
+        with self._lock:
+            self._frozen = True
+            self.log("Signal frozen")
 
     def toggle_logging(self, enabled: bool = True) -> None:
         """Toggle logging for this signal.
@@ -69,19 +91,24 @@ class Signal(Generic[SignalT]):
         with self._lock:
             self._error_raising = enabled
 
-    def subscribe(self, callback: Callable[[SignalT], None]) -> None:
-        """Subscribe to the signal with a callback.
+    def subscribe(
+        self, callback: Union[Callable[[SignalT], None], Callable[[SignalT], Awaitable[Any]]]
+    ) -> None:
+        """Subscribe to the signal with a callback (sync or async).
 
         Args:
             callback: A callable that accepts a single argument of type SignalT.
         Raises:
-            SignalError: If the callback is not callable.
+            SignalError: If the callback is not callable or signal is frozen.
         """
 
         if not callable(callback):
             raise SignalError(f"Callback must be callable, got {type(callback)}")
 
         with self._lock:
+            if self._frozen:
+                raise SignalError("Cannot subscribe to frozen signal")
+
             # Determine if subscriber is a class method or a regular function:
             subscriber = getattr(callback, "__self__", None) or callback
 
@@ -94,6 +121,12 @@ class Signal(Generic[SignalT]):
             except TypeError:
                 # Strong refs for regular functions
                 self._strong_subs[subscriber] = callback
+
+            callback_type = "async" if asyncio.iscoroutinefunction(callback) else "sync"
+            self.log(f"Subscribed {subscriber} ({callback_type})")
+
+    # Alias for compatibility with aiosignal-style usage
+    asubscribe = subscribe
 
     def unsubscribe(self, subscriber: Any) -> bool:
         """Unsubscribe a subscriber from the signal.
@@ -116,7 +149,7 @@ class Signal(Generic[SignalT]):
             return removed
 
     def publish(self, data: SignalT) -> None:
-        """Publish data to all subscribers. If any subscriber raises an exception,
+        """Publish data to all subscribers (sync only). If any subscriber raises an exception,
         it will be caught and passed to the `on_error` method (which just logs by default,
         but can be overridden for custom error handling).
 
@@ -127,17 +160,58 @@ class Signal(Generic[SignalT]):
             is True, it will be raised after calling `on_error`.
         """
 
+        if self._require_freeze and not self._frozen:
+            raise SignalError(
+                "Cannot send non-frozen signal - call freeze() first or set require_freeze=False"
+            )
+
+        with self._lock:
+            # Snapshot current subscribers to avoid mutation issues
+            current = list(self._weak_subs.items()) + list(self._strong_subs.items())
+
+        for subscriber, callback in current:
+            if asyncio.iscoroutinefunction(callback):
+                self.log(f"Skipping async callback {callback} in sync publish - use apublish() instead")
+                continue
+
+            try:
+                callback(data)
+            except Exception as e:
+                self.on_error(subscriber, callback, e)
+
+    async def apublish(self, data: SignalT) -> None:
+        """Asynchronously publish data to all subscribers (both sync and async).
+
+        Args:
+            data: The data to send to subscribers.
+        Raises:
+            SignalError: If signal requires freeze and is not frozen.
+            (Optional) Exception: If a subscriber's callback raises an exception, and `error_raising`
+            is True, it will be raised after calling `aon_error`.
+        """
+
+        if self._require_freeze and not self._frozen:
+            raise SignalError(
+                "Cannot send non-frozen signal - call freeze() first or set require_freeze=False"
+            )
+
         with self._lock:
             # Snapshot current subscribers to avoid mutation issues
             current = list(self._weak_subs.items()) + list(self._strong_subs.items())
 
         for subscriber, callback in current:
             try:
-                callback(data)
+                if asyncio.iscoroutinefunction(callback):
+                    await callback(data)
+                else:
+                    # Run sync callbacks in the current thread
+                    callback(data)
             except Exception as e:
-                self.on_error(subscriber, callback, e)
+                await self.aon_error(subscriber, callback, e)
 
-    emit = publish  # alias
+    # Aliases for compatibility
+    emit = publish
+    send = apublish
 
     def clear(self) -> None:
         """Clear all subscribers."""
@@ -145,8 +219,14 @@ class Signal(Generic[SignalT]):
         with self._lock:
             self._weak_subs.clear()
             self._strong_subs.clear()
+            self.log("Cleared all subscribers")
 
-    def on_error(self, subscriber: Any, callback: Callable[[SignalT], None], error: Exception) -> None:
+    def on_error(
+        self,
+        subscriber: Any,
+        callback: Union[Callable[[SignalT], None], Callable[[SignalT], Awaitable[Any]]],
+        error: Exception,
+    ) -> None:
         """Override this to handle errors differently. This will also override the `error_raising` flag.
 
         Args:
@@ -159,6 +239,24 @@ class Signal(Generic[SignalT]):
         if self._error_raising:
             raise SignalError(f"Error in callback {callback} for subscriber {subscriber}: {error}") from error
 
+    async def aon_error(
+        self,
+        subscriber: Any,
+        callback: Union[Callable[[SignalT], None], Callable[[SignalT], Awaitable[Any]]],
+        error: Exception,
+    ) -> None:
+        """Async version of on_error. Override this to handle async errors differently.
+
+        Args:
+            subscriber: The subscriber that raised the error.
+            callback: The callback that raised the error.
+            error: The exception that was raised.
+        """
+
+        self.log(f"Error in async callback for {subscriber}: {error}")
+        if self._error_raising:
+            raise SignalError(f"Error in callback {callback} for subscriber {subscriber}: {error}") from error
+
     def log(self, message: str) -> None:
         """Override this to customize logging behavior. This will also override the `logging_enabled` flag.
 
@@ -167,3 +265,22 @@ class Signal(Generic[SignalT]):
         """
         if self._logging_enabled:
             logger.info(f"[{self._name}] {message}")
+
+    def __call__(
+        self, func: Union[Callable[[SignalT], None], Callable[[SignalT], Awaitable[Any]]]
+    ) -> Union[Callable[[SignalT], None], Callable[[SignalT], Awaitable[Any]]]:
+        """Decorator interface for subscribing functions.
+
+        Args:
+            func: The function to subscribe.
+        Returns:
+            The same function (for decorator chaining).
+
+        Usage example:
+        ```
+        @signal
+        def my_handler(data):
+            print(f"Received data: {data}")
+        """
+        self.subscribe(func)
+        return func
