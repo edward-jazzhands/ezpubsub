@@ -23,14 +23,6 @@ classifiers = [
 
 dependencies = []
 
-[dependency-groups]
-dev = [
-    "basedpyright>=1.31.0",
-    "black>=25.1.0",
-    "mypy>=1.17.0",
-    "ruff>=0.12.4",
-]
-
 [project.urls]
 Repository = "https://github.com/edward-jazzhands/ezpubsub"
 Changelog = "https://github.com/edward-jazzhands/ezpubsub/blob/master/CHANGELOG.md"
@@ -38,6 +30,20 @@ Changelog = "https://github.com/edward-jazzhands/ezpubsub/blob/master/CHANGELOG.
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]
 build-backend = "uv_build"
+
+##########################
+# Dev Dependency Configs #
+##########################
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.31.0",
+    "black>=25.1.0",
+    "mypy>=1.17.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.12.4",
+]
 
 [tool.black]
 line-length = 110
@@ -49,3 +55,6 @@ strict = true
 [tool.basedpyright]
 include = ["src"]
 typeCheckingMode = "strict"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

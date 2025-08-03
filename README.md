@@ -6,18 +6,20 @@
 [![badge](https://img.shields.io/badge/Strictly_Typed-MyPy_&_Pyright-blue&logo=python)](https://mypy-lang.org/)
 [![badge](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/license/mit)
 
-A tiny, modern alternative to [Blinker](https://github.com/pallets-eco/blinker) – typed, thread-safe, and designed for today’s Python.
+A tiny, modern alternative to [Blinker](https://github.com/pallets-eco/blinker) – typed, thread-safe, sync or async, and designed for today’s Python.
 
-EZPubSub is a zero-dependency pub/sub library focused on one thing: **making event publishing and subscribing easy, safe, and predictable.** No async-first complexity, no dynamic runtime magic—just clean, synchronous pub/sub that works anywhere.
+EZPubSub is a zero-dependency pub/sub library focused on one thing: **making event publishing and subscribing easy, safe, and predictable.** No over-engineered, confusing API. No unnecessary features. Just clean, easy pub/sub that works anywhere.
 
 The core design is inspired by the internal signal system in [Textual](https://textual.textualize.io/), refined into a standalone library built for general use.
 
 ## Quick Start
 
+Synchronous signal:
+
 ```python
 from ezpubsub import Signal
 
-data_signal = Signal[str]("data_updated")
+data_signal = Signal[str]()
 
 def on_data(data: str) -> None:
     print("Received:", data)
@@ -27,24 +29,40 @@ data_signal.publish("Hello World")
 # Output: Received: Hello World
 ```
 
+Asynchronous signal with callback:
+
+```python
+from ezpubsub import Signal
+
+async_data_signal = Signal[str]("My Database Update")
+
+async def on_async_data(data: str) -> None:
+    await asyncio.sleep(1)  # Simulate async work
+    print("Async Received:", data)
+
+async_data_signal.asubscribe(on_async_data)
+await async_data_signal.apublish("Hello Async World")
+# Output: Async Received: Hello Async World
+```
+
 That’s it. You create a signal, subscribe to it, and publish events.
 
 ## Why Another Pub/Sub Library?
 
-Because pub/sub in Python is either **old and untyped** or **overengineered and async-first**.
+Because pub/sub in Python is either **old and untyped** or **overengineered and async-only**.
 
-Writing a naive pub/sub system is easy—just keep a list of callbacks and fire them. Writing one that actually works in production is not. You need to handle thread safety, memory management (weak refs for bound methods), error isolation, subscription lifecycles, and type safety. Most libraries get at least one of these wrong.
+Writing a naive pub/sub system is easy. Just keep a list of callbacks and fire them. Writing one that actually works in production is not. You need to handle thread safety, memory management (weak refs for bound methods), error isolation, subscription lifecycles, and type safety. Most libraries get at least one of these wrong.
 
-The last great attempt was Blinker—15 years ago. It was excellent for its time, but Python has moved on. EZPubSub is what a pub/sub library should look like in 2025: type-safe, thread-safe, ergonomic, and designed for modern Python.
+The last great attempt was Blinker, 15 years ago. It was excellent for its time, but Python has moved on. EZPubSub is what a pub/sub library should look like in 2025: type-safe, thread-safe, ergonomic, and designed for modern Python.
 
 ## Features
 
 * **Thread-Safe by Default** – Publish and subscribe safely across threads.
 * **Strongly Typed with Generics** – `Signal[str]`, `Signal[MyClass]`, or even TypedDict/dataclasses for structured events. Pyright/MyPy catches mistakes before runtime.
-* **Synchronous First (Async Optional)** – Works in any environment, including mixed sync/async projects.
+* **Sync or Async** – Works in any environment, including mixed sync/async projects.
 * **Automatic Memory Management** – Bound methods are weakly referenced and auto-unsubscribed when their objects are deleted.
-* **No Runtime Guesswork** – No `**kwargs`, no stringly-typed namespaces, no dynamic channel lookups.
-* **Lightweight & Zero Dependencies** – Only what you need, nothing else.
+* **No Runtime Guesswork** – No `**kwargs`, no stringly-typed namespaces, no dynamic channel lookups. Opinionated design that enforces type safety and clarity.
+* **Lightweight & Zero Dependencies** – Only what you need.
 
 ## How It Compares
 
@@ -52,12 +70,12 @@ The last great attempt was Blinker—15 years ago. It was excellent for its time
 
 Blinker is great for simple, single-threaded Flask-style apps. But:
 
-| Feature           | EZPubSub                           | Blinker                                           |
-| ----------------- | ---------------------------------- | ------------------------------------------------- |
-| **Typing**        | ✅ Full static typing (`Signal[T]`) | ❌ Untyped (`Any`)                                 |
-| **Thread Safety** | ✅ Built-in                         | ❌ Single-threaded only                            |
+| Feature           | EZPubSub                            | Blinker                                            |
+| ----------------- | ----------------------------------- | -------------------------------------------------- |
 | **Design**        | ✅ Instance-based, type-safe        | ⚠️ Channel-based (runtime filtering, string keys) |
-| **Weak Refs**     | ✅ Automatic                        | ✅ Automatic                                       |
+| **Weak Refs**     | ✅ Automatic                        | ✅ Automatic                                      |
+| **Type Checking** | ✅ Full static typing (`Signal[T]`) | ❌ Untyped (`Any`)                                |
+| **Thread Safety** | ✅ Built-in                         | ❌ Single-threaded only                           |
 
 If you’re starting a new project in 2025, you deserve type checking and thread safety out of the box.
 
@@ -65,22 +83,14 @@ If you’re starting a new project in 2025, you deserve type checking and thread
 
 [`aiosignal`](https://github.com/aio-libs/aiosignal) is excellent for its niche—managing fixed async callbacks inside `aiohttp`—but unsuitable as a general pub/sub system:
 
-| Limitation             | Why It Matters                                                         |
-| ---------------------- | ---------------------------------------------------------------------- |
-| **Async-Only**         | Forces you to rewrite sync code or wrap callbacks in event loop tasks. |
-| **Frozen Subscribers** | You must `freeze()` before sending; no dynamic add/remove at runtime.  |
-| **No Thread Safety**   | Assumes a single event loop context.                                   |
-| **Loose Typing**       | Allows arbitrary `**kwargs`, undermining type safety.                  |
+| Feature                  | EZPubSub                             | AioSignal                                                             |
+| ------------------------ | ------------------------------------ | --------------------------------------------------------------------- |
+| **Sync and Async**       | ✅ Sync and Async friendly           | ❌ Sync publishing not available                                     |
+| **Freezing Subscribers** | ✅ Optional in both Sync and Async   | ❌ `freeze()` required to publish; no dynamic add/remove at runtime  |
+| **Type Checking**        | ✅ Full static typing (`Signal[T]`)  | ⚠️ Allows arbitrary `**kwargs`, undermining type safety              |
+| **Thread Safety**        | ✅ Built-in                          | ❌ Single-threaded only                                              |
 
-`aiosignal` is great if you’re writing an `aiohttp` extension. But if you need a general-purpose pub/sub system that works in any context, it's not the greatest fit.
-
-### Why Not Async-First Libraries?
-
-Pub/sub is just a dispatch mechanism. Whether you await data before publishing is application logic—not the library’s job. Async-first libraries complicate what should be simple: they force you to juggle tasks, event loops, and weird APIs for no real benefit.
-
-Synchronous first, with optional async support, is simpler and more predictable. That’s why Blinker, Celery, and PyDispatcher all share this design—and why EZPubSub does too.
-
----
+`aiosignal` is great if you’re writing an `aiohttp` extension. But being required to use async everywhere just to publish signals is unnecessary for most applications. Synchronous first, with optional async support, is simpler and more predictable. That’s why Blinker, Celery, and Django's internal PubSub (based on PyDispatcher) all share this design.
 
 ## Design Philosophy
 
@@ -114,7 +124,7 @@ Fewer magic strings, fewer runtime bugs, and code that reads like what it does.
 
 ### Why No `**kwargs`?
 
-Allowing arbitrary keyword arguments is convenient—but it destroys type safety.
+Allowing arbitrary keyword arguments is convenient, but it destroys type safety.
 
 ```python
 # Bad: fragile, stringly typed
@@ -130,9 +140,9 @@ class UserLoginEvent:
 signal.publish(UserLoginEvent(user, "abc123", "1.2.3.4"))
 ```
 
-This forces better API design and catches mistakes at compile time instead of runtime. If you need flexible payloads, use TypedDicts, dataclasses, or even a `Union` of event types.
+This forces better API design and catches mistakes at compile time instead of runtime. EZPubSub is opinionated about this: **no `**kwargs`**. Every signal has a specific type.
 
----
+It is of course possible to simply not use any type hinting when creating a signal (or use `Any`), as type hints in Python are optional. But the library is designed to encourage type safety by default. As for why you would ever want to create a signal using `Any` or without a type hint, I won't ask any questions ;)
 
 ## Installation
 

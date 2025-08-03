@@ -19,19 +19,35 @@ uv add ezpubsub
 
 ## Quick Start
 
-Create a `Signal` instance, subscribe to it, and publish data:
+Synchronous signal:
 
-```py
+```python
 from ezpubsub import Signal
 
-data_signal = Signal[str](name="data_updated")
+data_signal = Signal[str]()
 
-def my_callback(data: str) -> None:
-    print("Received data:", data)
+def on_data(data: str) -> None:
+    print("Received:", data)
 
-data_signal.subscribe(my_callback)
+data_signal.subscribe(on_data)
 data_signal.publish("Hello World")
-# Output: Received data: Hello World
+# Output: Received: Hello World
+```
+
+Asynchronous signal with callback:
+
+```python
+from ezpubsub import Signal
+
+async_data_signal = Signal[str]("My Database Update")
+
+async def on_async_data(data: str) -> None:
+    await asyncio.sleep(1)  # Simulate async work
+    print("Async Received:", data)
+
+async_data_signal.asubscribe(on_async_data)
+await async_data_signal.apublish("Hello Async World")
+# Output: Async Received: Hello Async World
 ```
 
 ## Basic Usage Example
@@ -145,84 +161,6 @@ for thread in threads:
     thread.join()
 ```
 
-Some examples of best practices for thread safety:
-
-```py
-import copy
-from ezpubsub import Signal
-
-# For mutable data, consider copying to avoid race conditions
-user_signal = Signal[dict](name="user_updates")
-
-def safe_publish(user_data: dict):
-    # Deep copy to prevent concurrent modification issues
-    user_signal.publish(copy.deepcopy(user_data))
-
-# Or use immutable data types like namedtuples or dataclasses with frozen=True
-from dataclasses import dataclass
-
-@dataclass(frozen=True)
-class UserEvent:
-    user_id: int
-    action: str
-    timestamp: float
-
-user_events = Signal[UserEvent](name="user_events")
-# UserEvent is immutable, so safe to pass between threads
-```
-
-## Global Signal / Bridging Frameworks
-
-```py
-# Useful when you have multiple systems that need to communicate
-from ezpubsub import Signal
-
-# Global signal that both systems can use
-system_events = Signal[dict](name="cross_system")
-
-# Flask app publishes events
-@app.route('/trigger')
-def trigger_event():
-    system_events.publish({"event": "flask_trigger", "data": "hello"})
-    return "triggered"
-
-# Separate background service subscribes
-class BackgroundService:
-    def __init__(self):
-        system_events.subscribe(self.handle_system_event)
-    
-    def handle_system_event(self, event_data: dict):
-        print(f"Background service received: {event_data}")
-
-# Now Flask and your background service can communicate
-# without tight coupling
-```
-
-## Integrating with Async Code
-
-ezpubsub is synchronous at its core. You control when and how to schedule async work, which keeps the library predictable and compatible with any async framework:
-
-```py
-import asyncio      # if you're using asyncio directly
-from ezpubsub import Signal
-
-loop = asyncio.get_event_loop()
-data_signal = Signal[str]()
-
-async def async_process(data: str):
-    await asyncio.sleep(0.1)
-    print("Async processed:", data)
-
-def sync_callback(data: str):
-    loop.create_task(async_process(data))
-
-data_signal.subscribe(sync_callback)
-data_signal.publish("Hello World")
-await asyncio.sleep(0.2)
-```
-
-This keeps the library simple and leaves control in your hands. Async helper wrappers may possibly be added in the future if there is high enough demand for them. But I personally do not think there's any real benefit. You control when the publisher emits data. If you need your publisher to await some IO, you can do that before calling `publish`. If you need to schedule the subscriber to run later, you can do that in the callback itself. Here synchronous code is flexible and does not force you into any specific async patterns.
-
 ## Using Typed Objects for Signal Types
 
 One of the coolest benefits of modern Python type hinting is the ability to create "Typed Objects" that can be used as signal types. This allows you to define a class that represents the data your signal will carry, and then use that class as the type parameter for your Signal.
@@ -330,6 +268,33 @@ try:
     signal.publish("test")  # Will trigger custom error handling
 except Exception as e:
     print(f"Caught an error during publish: {e}")
+```
+
+## Global Signal / Bridging Frameworks
+
+```py
+# Useful when you have multiple systems that need to communicate
+from ezpubsub import Signal
+
+# Global signal that both systems can use
+system_events = Signal[dict](name="cross_system")
+
+# Flask app publishes events
+@app.route('/trigger')
+def trigger_event():
+    system_events.publish({"event": "flask_trigger", "data": "hello"})
+    return "triggered"
+
+# Separate background service subscribes
+class BackgroundService:
+    def __init__(self):
+        system_events.subscribe(self.handle_system_event)
+    
+    def handle_system_event(self, event_data: dict):
+        print(f"Background service received: {event_data}")
+
+# Now Flask and your background service can communicate
+# without tight coupling
 ```
 
 ## Memory Management

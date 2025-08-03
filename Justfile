@@ -15,13 +15,20 @@ typecheck:
   @uv run mypy src || (echo "Mypy found issues. Please address them." && exit 1)
   @uv run basedpyright src || (echo "BasedPyright found issues. Please address them." && exit 1)
 
+typecheck-tests:
+  @uv run mypy tests || (echo "Mypy found issues in tests. Please address them." && exit 1)
+  @uv run basedpyright tests || (echo "BasedPyright found issues in tests. Please address them." && exit 1)
+
 # Runs black
 format:
   @uv run black src
 
-# Runs ruff, mypy, and black
-all-checks: lint typecheck format
-  echo "All pre-commit checks passed. You're good to PR to main."
+test:
+  @uv run pytest tests -vvv
+
+# Run the Nox testing suite for comprehensive testing
+nox:
+  nox
 
 # Remove build/dist directories and pyc files
 clean:
@@ -32,14 +39,18 @@ clean:
 clean-caches:
   rm -rf .mypy_cache
   rm -rf .ruff_cache
+  rm -rf .nox
 
 # Remove the virtual environment and lock file
 del-env:
   rm -rf .venv
   rm -rf uv.lock
 
+nuke: clean clean-caches del-env
+  @echo "All build artifacts and caches have been removed."
+
 # Removes all environment and build stuff
-reset: clean clean-caches del-env install
+reset: nuke install
   @echo "Environment reset."
 
 # Release the kraken

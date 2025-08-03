@@ -6,9 +6,21 @@ dist/
 wheels/
 *.egg-info
 
-# caches
-*_cache
-
+# Textual stuff
+snapshot_report.html
 
 # Virtual environments
 .venv
+
+# tooling stuff
+*_cache/
+.nox/
+
+# other
+[Tt]humbs.db
+
+# AI / Agent stuff
+.crush
+CRUSH.md
+.claude
+CLAUDE.md
