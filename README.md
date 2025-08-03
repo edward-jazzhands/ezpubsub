@@ -40,7 +40,7 @@ async def on_async_data(data: str) -> None:
     await asyncio.sleep(1)  # Simulate async work
     print("Async Received:", data)
 
-async_data_signal.asubscribe(on_async_data)
+async_data_signal.subscribe(on_async_data)
 await async_data_signal.apublish("Hello Async World")
 # Output: Async Received: Hello Async World
 ```
