@@ -1,5 +1,21 @@
 # ezpubsub Changelog
 
+## [0.3.0] 2025-08-03
+
+### Changed
+
+- [dev] Changed `ci-checks.yml` to run Nox instead of individual commands for MyPy, Ruff, Pytest, etc.
+
+### Added
+
+- [dev] Added `/tests` directory with a handful of unit test and a [pytest] section in `pyproject.toml`.
+- [dev] Added Nox testing and `noxfile.py` to automate testing with MyPy, Ruff, Pytest, and BasedPyright.
+- [dev] Added pytest and pytest-asyncio to dev dependencies.
+
+### Removed
+
+- [dev] Deleted `ci-requirements.txt` as it is no longer needed with the new Nox setup.
+
 ## [0.2.0] 2025-07-28
 
 ### Code and project changes
