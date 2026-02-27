@@ -162,7 +162,7 @@ Requires Python 3.10+.
 
 ## Documentation
 
-Full docs: [**Click here**](https://edward-jazzhands.github.io/libraries/ezpubsub/docs/)
+Full docs: [**Click here**](https://github.com/edward-jazzhands/ezpubsub/blob/main/docs/docs.md)
 
 ---
 
