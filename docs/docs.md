@@ -342,7 +342,3 @@ Why This Design?
 - Instance methods are usually tied to object lifecycles - when the object is gone, you probably don't want the callbacks anymore
 - Functions are often module-level and meant to persist - they need explicit management
 - This prevents memory leaks while keeping the API simple
-
-## API Reference
-
-You can find the full API reference on the [reference page](reference.md).
